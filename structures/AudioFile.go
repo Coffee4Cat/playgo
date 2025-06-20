@@ -3,30 +3,42 @@ package structures
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
-	// "github.com/hajimehoshi/go-mp3"
+	// "path/filepath"
+	// "strings"
+	"github.com/hajimehoshi/go-mp3"
+	// "time"
 )
 
 
 type AudioFile struct {
-	Entry os.DirEntry
+	FullPath string
 	Name string
+	DataLength int64
+	SampleRate int
+	Duration int
 }
 
-func NewAudioFile(entry os.DirEntry) AudioFile {
-	var name string = strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-	// decoder, _ := mp3.NewDecoder()
+func NewAudioFile(name string, fullpath string) AudioFile {
+	f, err := os.Open(fullpath)
+	if err != nil { panic(err) }
 
-	return AudioFile{Entry: entry, Name: name}
+	decoder, err := mp3.NewDecoder(f)
+	if err != nil { panic(err) }
+	
+	var data_length int64 = decoder.Length()
+	var sample_rate int = decoder.SampleRate()
+	var duration int = int(float64(data_length) / float64(sample_rate * 4))
+
+	return AudioFile{FullPath: fullpath, Name: name, Duration: duration,
+					DataLength: data_length, SampleRate: sample_rate}
 }
 
-func (audiofile *AudioFile) UpdateEntry(new_entry os.DirEntry){
-	*audiofile = NewAudioFile(audiofile.Entry)
+func (audiofile *AudioFile) UpdateData(new_name string, new_fullpath string){
+	*audiofile = NewAudioFile(new_name, new_fullpath)
 }
 
 
 func (audiofile *AudioFile) Repr() string {
-	var ret string = fmt.Sprintf("--- %s",audiofile.Name)
+	var ret string = fmt.Sprintf("--- %s   :   %d seconds",audiofile.Name, audiofile.Duration)
 	return ret
 }

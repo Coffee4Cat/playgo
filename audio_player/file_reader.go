@@ -2,9 +2,9 @@ package audio_player
 
 import(
 	"fmt"
-	// "strings"
+	"strings"
 	"os"
-	// "path/filepath"
+	"path/filepath"
 	// "github.com/hajimehoshi/go-mp3"
 	"playgo/structures"
 )
@@ -40,9 +40,12 @@ func ListAudioFiles(audiopath string, audiofolder structures.AudioFolder) []stru
 	}
 
 	for _,entry := range entries {
-		var audiofile structures.AudioFile = structures.NewAudioFile(entry)
+		var name string = strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		var fp string = fullpath + "/" + entry.Name()
+		var audiofile structures.AudioFile = structures.NewAudioFile(name,fp)
 		audiofiles = append(audiofiles, audiofile) 
 	}
+	audiofolder.AudioFiles = audiofiles
 
 	return audiofiles
 }
