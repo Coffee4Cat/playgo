@@ -16,6 +16,7 @@ type AudioFile struct {
 	DataLength int64
 	SampleRate int
 	Duration int
+	Decoder *mp3.Decoder
 }
 
 func NewAudioFile(name string, fullpath string) AudioFile {
@@ -30,7 +31,7 @@ func NewAudioFile(name string, fullpath string) AudioFile {
 	var duration int = int(float64(data_length) / float64(sample_rate * 4))
 
 	return AudioFile{FullPath: fullpath, Name: name, Duration: duration,
-					DataLength: data_length, SampleRate: sample_rate}
+					DataLength: data_length, SampleRate: sample_rate, Decoder: decoder}
 }
 
 func (audiofile *AudioFile) UpdateData(new_name string, new_fullpath string){
