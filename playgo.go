@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "playgo/user_interface"
+	"playgo/user_interface"
 	"playgo/audio_player"
 	"playgo/structures"
 	"time"
@@ -12,11 +12,9 @@ import (
 
 
 func main() {
-	// user_interface.InitializeUI();
-	// FILE SCAN (yep. i will put it into sum function in some time...)
 	var folders []structures.AudioFolder = audio_player.ListAudioFolders("/home/milosz/Music")
-	for i, folder := range folders {
-		var files []structures.AudioFile = audio_player.ListAudioFiles("/home/milosz/Music",folder)
+	for i, _ := range folders {
+		var files []structures.AudioFile = audio_player.ListAudioFiles("/home/milosz/Music",&folders[i])
 		folders[i].UpdateAudioFiles(files)
 		fmt.Println(folders[i].Repr())
 		for _, file := range folders[i].AudioFiles{
@@ -24,6 +22,7 @@ func main() {
 		}
 	}
 	
+	user_interface.InitializeUI(&folders);
 
 
 	// POINTER-FLAG STUFF TEST

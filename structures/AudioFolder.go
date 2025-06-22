@@ -9,6 +9,7 @@ import (
 type AudioFolder struct {
 	Entry os.DirEntry
 	AudioFiles []AudioFile
+	Duration int
 }
 
 func NewAudioFolder(entry os.DirEntry) AudioFolder {
@@ -24,7 +25,7 @@ func (audiofolder *AudioFolder) UpdateAudioFiles(new_audio_files []AudioFile){
 }
 
 func (audiofolder *AudioFolder) Repr() string {
-	var ret string = fmt.Sprintf("+ %s  / tracks: %d",audiofolder.Entry.Name(),len(audiofolder.AudioFiles))
+	var ret string = fmt.Sprintf("+ %-60s track count: %-20d total time: %d",audiofolder.Entry.Name(),len(audiofolder.AudioFiles),audiofolder.Duration)
 	return ret
 }
 

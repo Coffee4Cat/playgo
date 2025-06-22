@@ -40,6 +40,6 @@ func (audiofile *AudioFile) UpdateData(new_name string, new_fullpath string){
 
 
 func (audiofile *AudioFile) Repr() string {
-	var ret string = fmt.Sprintf("--- %s   :   %d seconds",audiofile.Name, audiofile.Duration)
+	var ret string = fmt.Sprintf("--- %-30s:   %d seconds",audiofile.Name, audiofile.Duration)
 	return ret
 }
