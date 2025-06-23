@@ -9,40 +9,24 @@ import (
 
 
 func InitializeUI(folders *[]structures.AudioFolder) {
-	fmt.Println("DEBUG")
 
     tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
     tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
     tview.Styles.MoreContrastBackgroundColor = tcell.ColorDefault
+	
+	pages := tview.NewPages()
+	fileList := initFileList(pages)
+	folderList := makeFolderList(folders, fileList, pages)
+	
+	pages.AddPage("main", folderList, true, true).
+		AddPage("tracks", fileList, true, false)
 
-
-	mainBox := tview.NewBox().
-		SetBorder(true).
-		SetTitle("PlayGo").
-		SetTitleColor(tcell.ColorLightGreen).
-		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-	_ = mainBox
 
 	bottomBox := tview.NewBox().
 		SetBorder(true).
 		SetTitle("Controller").
 		SetTitleColor(tcell.ColorKhaki).
 		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-
-	folderList := makeFolderList(folders)
-
-	pages := tview.NewPages().
-    	AddPage("main", folderList, true, true)
-
-	
-
-
-
-
-
-
-
-
 
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -64,12 +48,54 @@ func InitializeUI(folders *[]structures.AudioFolder) {
 
 
 
-
 // utilities
-func makeFolderList(folders *[]structures.AudioFolder) *tview.List {
+func initFileList(pages *tview.Pages) *tview.List {
+	list := tview.NewList()
+	list.SetBorder(true).
+		SetTitle("Tracks").
+		SetTitleColor(tcell.ColorKhaki).
+		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
+		
+	list.SetMainTextColor(tcell.ColorIndianRed).
+		SetSelectedTextColor(tcell.ColorLightGreen).
+		SetSelectedBackgroundColor(tcell.ColorIndianRed)
+
+	list.SetInputCapture(func (event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			pages.SwitchToPage("main")
+			return nil
+		}
+		return event
+	})
+	return list
+}
+
+
+func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
+	for _, file := range folder.AudioFiles {
+		filelist.AddItem(file.Repr(),"",0,nil)	
+	}
+
+	filelist.SetBorder(true).
+		SetTitle("Tracks").
+		SetTitleColor(tcell.ColorKhaki).
+		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
+		
+	filelist.SetMainTextColor(tcell.ColorIndianRed).
+		SetSelectedTextColor(tcell.ColorLightGreen).
+		SetSelectedBackgroundColor(tcell.ColorIndianRed)
+}
+
+func makeFolderList(folders *[]structures.AudioFolder, fileList *tview.List, pages *tview.Pages) *tview.List {
+	selectCallback := func (folder *structures.AudioFolder) {
+		fileList.Clear()
+		makeFileList(fileList, folder)
+		pages.SwitchToPage("tracks")
+	}
+	
 	list := tview.NewList()
 	for _, folder := range *folders {
-		list.AddItem(folder.Repr(),"",0,nil)	
+		list.AddItem(folder.Repr(),"",0, func () {selectCallback(&folder)})	
 	}
 	list.SetBorder(true).
 		SetTitle("Albums").
@@ -79,6 +105,15 @@ func makeFolderList(folders *[]structures.AudioFolder) *tview.List {
 	list.SetMainTextColor(tcell.ColorIndianRed).
 		SetSelectedTextColor(tcell.ColorLightGreen).
 		SetSelectedBackgroundColor(tcell.ColorIndianRed)
+
+	list.SetInputCapture(func (event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			pages.SwitchToPage("main")
+			return nil
+		}
+		return event
+	})
 	return list
 }
+
 
