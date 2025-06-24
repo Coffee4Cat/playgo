@@ -5,13 +5,14 @@ import (
 	"playgo/user_interface"
 	"playgo/audio_player"
 	"playgo/structures"
-	"time"
-	"sync/atomic"
+	// "time"
 )
 
 
 
 func main() {
+
+	// DIRECTORY SEARCH
 	var folders []structures.AudioFolder = audio_player.ListAudioFolders("/home/milosz/Music")
 	for i, _ := range folders {
 		var files []structures.AudioFile = audio_player.ListAudioFiles("/home/milosz/Music",&folders[i])
@@ -22,23 +23,15 @@ func main() {
 		}
 	}
 	
-	user_interface.InitializeUI(&folders);
+	var commandChannel chan structures.PlayerCommand
+	commandChannel = make(chan structures.PlayerCommand)
 
-
-	// POINTER-FLAG STUFF TEST
-	var volume atomic.Value
-	var pause atomic.Value
-	volume.Store(0.1) 
-	pause.Store(true)
-
-
-	audio_player.PlayAudioFile(folders[0].AudioFiles[0], &volume, &pause)
-	time.Sleep(1 * time.Second)
-	volume.Store(0.05)
-	pause.Store(false)
-	time.Sleep(3 * time.Second)
-	pause.Store(true)
-	time.Sleep(5 * time.Second)
+	audio_player.InitializePlayer(commandChannel)
+	user_interface.InitializeUI(&folders, commandChannel)
+	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[0].AudioFiles[0] }
+	// time.Sleep(time.Second * 1)
+	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[1].AudioFiles[0] }
+	// time.Sleep(time.Second * 1)
 
 
 }

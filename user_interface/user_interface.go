@@ -3,12 +3,14 @@ package user_interface
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"fmt"
 	"playgo/structures"
 )
 
+var cmd chan structures.PlayerCommand
 
-func InitializeUI(folders *[]structures.AudioFolder) {
+
+func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand) {
+	cmd = command
 
     tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
     tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
@@ -71,9 +73,14 @@ func initFileList(pages *tview.Pages) *tview.List {
 }
 
 
+
+
 func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
 	for _, file := range folder.AudioFiles {
-		filelist.AddItem(file.Repr(),"",0,nil)	
+		f := file
+		filelist.AddItem(file.Repr(),"",0, func () {
+			cmd <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &f}
+		})	
 	}
 
 	filelist.SetBorder(true).
@@ -95,7 +102,8 @@ func makeFolderList(folders *[]structures.AudioFolder, fileList *tview.List, pag
 	
 	list := tview.NewList()
 	for _, folder := range *folders {
-		list.AddItem(folder.Repr(),"",0, func () {selectCallback(&folder)})	
+		f := folder
+		list.AddItem(folder.Repr(),"",0, func () {selectCallback(&f)})	
 	}
 	list.SetBorder(true).
 		SetTitle("Albums").

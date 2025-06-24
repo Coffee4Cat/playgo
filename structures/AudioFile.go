@@ -43,3 +43,10 @@ func (audiofile *AudioFile) Repr() string {
 	var ret string = fmt.Sprintf("--- %-30s:   %d seconds",audiofile.Name, audiofile.Duration)
 	return ret
 }
+
+func (audiofile *AudioFile) ResetDecoder() {
+	f, err := os.Open(audiofile.FullPath)
+	if err != nil { panic(err) }
+
+	audiofile.Decoder, _ = mp3.NewDecoder(f)
+}
