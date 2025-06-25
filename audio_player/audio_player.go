@@ -15,7 +15,7 @@ func InitializePlayer(command chan structures.PlayerCommand) {
 	var ctx *oto.Context
 	var player *oto.Player
 	var playing bool
-	var volume float64 = 1.0
+	var volume float64 = 0.5
 
 
 	go func() {
