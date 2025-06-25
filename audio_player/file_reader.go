@@ -45,7 +45,6 @@ func ListAudioFiles(audiopath string, audiofolder *structures.AudioFolder) []str
 		var name string = strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		var fp string = fullpath + "/" + entry.Name()
 		var audiofile structures.AudioFile = structures.NewAudioFile(name,fp)
-		fmt.Println("%d",audiofile.Duration)
 		totaltime += audiofile.Duration
 		audiofiles = append(audiofiles, audiofile) 
 	}

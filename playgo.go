@@ -1,33 +1,44 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"flag"
 	"playgo/user_interface"
 	"playgo/audio_player"
 	"playgo/structures"
-	// "time"
+	"time"
 )
 
 
 
 func main() {
-
+	audiopath := flag.String("f", "/home/milosz/Music", "Absolute path to the folder with music")
+	flag.Parse()
+	
+	log.Println("[PLAYGO][VERSION 1.0]")
+	time.Sleep(time.Millisecond * 100)
+	log.Println("[PLAYGO][PATH:" + *audiopath + "]")
+	time.Sleep(time.Millisecond * 100)
+	log.Println("[PLAYGO][HAVE FUN!]")
+	time.Sleep(time.Millisecond * 500)
+	
 	// DIRECTORY SEARCH
-	var folders []structures.AudioFolder = audio_player.ListAudioFolders("/home/milosz/Music")
+	var folders []structures.AudioFolder = audio_player.ListAudioFolders(*audiopath)
 	for i, _ := range folders {
-		var files []structures.AudioFile = audio_player.ListAudioFiles("/home/milosz/Music",&folders[i])
+		var files []structures.AudioFile = audio_player.ListAudioFiles(*audiopath,&folders[i])
 		folders[i].UpdateAudioFiles(files)
-		fmt.Println(folders[i].Repr())
-		for _, file := range folders[i].AudioFiles{
-			fmt.Println(file.Repr())
-		}
 	}
 	
+
+
 	var commandChannel chan structures.PlayerCommand
 	commandChannel = make(chan structures.PlayerCommand)
 
 	audio_player.InitializePlayer(commandChannel)
 	user_interface.InitializeUI(&folders, commandChannel)
+
+
+
 	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[0].AudioFiles[0] }
 	// time.Sleep(time.Second * 1)
 	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[1].AudioFiles[0] }

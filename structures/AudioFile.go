@@ -47,6 +47,5 @@ func (audiofile *AudioFile) Repr() string {
 func (audiofile *AudioFile) ResetDecoder() {
 	f, err := os.Open(audiofile.FullPath)
 	if err != nil { panic(err) }
-
 	audiofile.Decoder, _ = mp3.NewDecoder(f)
 }
