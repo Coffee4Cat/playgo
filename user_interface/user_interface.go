@@ -7,10 +7,10 @@ import (
 )
 
 var cmd chan structures.PlayerCommand
-
+var volumeText *tview.TextView
+var volume float64 = 0.5
 
 func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand) {
-	var volume float64 = 0.5
 	cmd = command
 
     tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
@@ -24,15 +24,7 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 	pages.AddPage("main", folderList, true, true).
 		AddPage("tracks", fileList, true, false)
 		
-
-
-	// bottomBox := tview.NewBox().
-	// 	SetBorder(false).
-	// 	SetTitle("Controller").
-	// 	SetTitleColor(tcell.ColorKhaki)
-		// SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-
-	volumeText := tview.NewTextView().
+	volumeText = tview.NewTextView().
 		SetText(makeVolumeBar(volume)).
 		SetTextAlign(tview.AlignCenter).
 		SetDynamicColors(true)
@@ -41,11 +33,22 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 		SetDirection(tview.FlexRow).
 		AddItem(pages, 0, 4, true).
 		AddItem(volumeText, 0, 1, false)
-		// AddItem(bottomBox, 0, 1, false)
 
 	mainFrame := tview.NewFrame(layout).
 		SetBorders(0, 0, 0, 0, 1, 1).
 		AddText("<<PLAYGO>>", true, tview.AlignCenter,tcell.ColorKhaki)
+
+	mainFrame.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyRight:
+			setVolumeUp()
+			return nil
+		case tcell.KeyLeft:
+			setVolumeDown()
+			return nil
+		}
+		return event
+	}) 
 
 
 	if err := tview.NewApplication().SetRoot(mainFrame, true).Run(); err != nil {
@@ -57,6 +60,27 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 
 
 // utilities
+
+func setVolumeUp() {
+	cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: true}
+	if volume < 0.9 {
+		volume += 0.1
+	}
+	if volumeText != nil {
+		volumeText.SetText(makeVolumeBar(volume))
+	}
+}
+func setVolumeDown() {
+	cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: false}
+	if volume > 0.0 {
+		volume -= 0.1
+	}
+	if volumeText != nil {
+		volumeText.SetText(makeVolumeBar(volume))
+	}
+}
+
+
 func initFileList(pages *tview.Pages) *tview.List {
 	list := tview.NewList()
 	list.SetBorder(true).
@@ -133,15 +157,20 @@ func makeFolderList(folders *[]structures.AudioFolder, fileList *tview.List, pag
 
 
 func makeVolumeBar(level float64) string {
-	var maxx int = 20
+	var maxx int = 28
 	var filled int = int(level * float64(maxx))
-	var bar string = ""
+	var bar string = "[lightgreen]VOLUME\n[[-] "
 	for i := 0; i < maxx ; i++ {
-		if i <= filled {
-			bar += "#"
+		if i <= filled && i <= int(0.33 * float64(maxx)) {
+			bar += "[green]#[-]"
+		} else if i <= filled && i <= int(0.66 * float64(maxx)){
+			bar += "[yellow]#[-]"
+		}else if i <= filled && i <= int(1.0 * float64(maxx)){
+			bar += "[red]#[-]"
 		} else {
-			bar += "0"
+			bar += "[gray]0[-]"
 		}
 	}
+	bar += "[lightgreen] ][-]"
 	return bar
 }
