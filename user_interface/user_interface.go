@@ -4,10 +4,15 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"playgo/structures"
+	"fmt"
+	"time"
 )
 
 var cmd chan structures.PlayerCommand
 var volumeText *tview.TextView
+var playText *tview.TextView
+var play bool = false
+var playstringptr int = 0 
 var volume float64 = 0.5
 
 func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand) {
@@ -29,10 +34,16 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 		SetTextAlign(tview.AlignCenter).
 		SetDynamicColors(true)
 
+	playText = tview.NewTextView().
+		SetText(makePlayLabel()).
+		SetTextAlign(tview.AlignCenter).
+		SetDynamicColors(true)
+
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(pages, 0, 4, true).
-		AddItem(volumeText, 0, 1, false)
+		AddItem(volumeText, 0, 1, false).
+		AddItem(playText, 0, 1, false)
 
 	mainFrame := tview.NewFrame(layout).
 		SetBorders(0, 0, 0, 0, 1, 1).
@@ -46,12 +57,33 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 		case tcell.KeyLeft:
 			setVolumeDown()
 			return nil
+		case tcell.KeyRune:
+			if event.Rune() == ' ' {
+				togglePlay()
+			}
+			return nil
 		}
+
 		return event
 	}) 
 
 
-	if err := tview.NewApplication().SetRoot(mainFrame, true).Run(); err != nil {
+
+	app := tview.NewApplication()
+	app.SetRoot(mainFrame, true)
+
+	go func() {
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+		for range ticker.C {
+			if playText != nil && play {
+				app.QueueUpdateDraw(func() {
+					playText.SetText(makePlayLabel())
+				})
+			}
+		}
+	}()
+	if err := app.Run(); err != nil {
 		panic(err)
 	}
 }
@@ -77,6 +109,13 @@ func setVolumeDown() {
 	}
 	if volumeText != nil {
 		volumeText.SetText(makeVolumeBar(volume))
+	}
+}
+func togglePlay() {
+	play = !play
+	cmd <- structures.PlayerCommand{Action: structures.ActionSetPlay, Play: play}
+	if playText != nil {
+		playText.SetText(makePlayLabel())
 	}
 }
 
@@ -110,6 +149,7 @@ func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
 		f := file
 		filelist.AddItem(file.Repr(),"",0, func () {
 			cmd <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &f}
+			play = true
 		})	
 	}
 
@@ -173,4 +213,20 @@ func makeVolumeBar(level float64) string {
 	}
 	bar += "[lightgreen] ][-]"
 	return bar
+}
+
+func makePlayLabel() string {
+	var playlabel string = ""
+	letters := []string{"P","L","A","Y","I","N","G"}
+	collors := []string{"lightred","cyan","lightgreen","lightblue","yellow","lightmagenta","lightcyan"}
+	if play {
+		for i := 0; i < len(letters) ; i++ {
+			playlabel += fmt.Sprintf("[%s]%s[-]", collors[(i + playstringptr)%len(collors)], letters[i])
+		}
+		playstringptr += 1
+	} else {
+		playlabel = "[red]STOP[-]"
+	}
+
+	return playlabel
 }

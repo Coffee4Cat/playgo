@@ -50,7 +50,7 @@ func InitializePlayer(command chan structures.PlayerCommand) {
 				}
 
 			default:
-				if playing && ctx != nil {
+				if playing && ctx != nil && audiofile != nil {
 					n, err := audiofile.Decoder.Read(buf)
 					if n > 0 {
 						for i := 0; i < n; i += 2 {

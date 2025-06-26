@@ -32,17 +32,11 @@ func main() {
 
 
 	var commandChannel chan structures.PlayerCommand
+	
 	commandChannel = make(chan structures.PlayerCommand)
-
+	
+	
 	audio_player.InitializePlayer(commandChannel)
 	user_interface.InitializeUI(&folders, commandChannel)
-
-
-
-	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[0].AudioFiles[0] }
-	// time.Sleep(time.Second * 1)
-	// commandChannel <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &folders[1].AudioFiles[0] }
-	// time.Sleep(time.Second * 1)
-
 
 }
