@@ -17,6 +17,7 @@ type AudioFile struct {
 	SampleRate int
 	Duration int
 	Decoder *mp3.Decoder
+	CurrentTime int
 }
 
 func NewAudioFile(name string, fullpath string) AudioFile {

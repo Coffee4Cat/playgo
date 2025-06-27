@@ -32,11 +32,13 @@ func main() {
 
 
 	var commandChannel chan structures.PlayerCommand
+	var feedbackChannel chan structures.PlayerCommand
 	
 	commandChannel = make(chan structures.PlayerCommand)
+	feedbackChannel = make(chan structures.PlayerCommand)
 	
 	
-	audio_player.InitializePlayer(commandChannel)
-	user_interface.InitializeUI(&folders, commandChannel)
+	audio_player.InitializePlayer(commandChannel, feedbackChannel)
+	user_interface.InitializeUI(&folders, commandChannel, feedbackChannel)
 
 }

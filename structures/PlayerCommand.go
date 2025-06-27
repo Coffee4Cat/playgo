@@ -5,6 +5,7 @@ const (
 	ActionSetPlay = "set_play"
 	ActionSetTrack = "set_track"
 	ActionSetLevel = "set_level"
+	ActionSetPlayFeedback = "set_play_feedback"
 )
 
 type PlayerCommand struct {

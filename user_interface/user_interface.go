@@ -9,14 +9,19 @@ import (
 )
 
 var cmd chan structures.PlayerCommand
+var feedbackcmd chan structures.PlayerCommand
 var volumeText *tview.TextView
 var playText *tview.TextView
 var play bool = false
 var playstringptr int = 0 
 var volume float64 = 0.5
+var currentTrack *structures.AudioFile
 
-func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand) {
+
+
+func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand, feedbackcommand chan structures.PlayerCommand) {
 	cmd = command
+	feedbackcmd = feedbackcommand
 
     tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
     tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
@@ -59,7 +64,7 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == ' ' {
-				togglePlay()
+				play = togglePlay(&play)
 			}
 			return nil
 		}
@@ -73,16 +78,34 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 	app.SetRoot(mainFrame, true)
 
 	go func() {
-		ticker := time.NewTicker(200 * time.Millisecond)
+		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
-		for range ticker.C {
-			if playText != nil && play {
-				app.QueueUpdateDraw(func() {
-					playText.SetText(makePlayLabel())
-				})
+
+		for {
+			select {
+			case <-ticker.C:
+				if playText != nil {
+					app.QueueUpdateDraw(func() {
+						playText.SetText(makePlayLabel())
+					})
+				}
+
+			case fcmd := <-feedbackcmd:
+				if fcmd.Action == structures.ActionSetPlayFeedback {
+					if fcmd.Play {
+						play = fcmd.Play
+					} else {
+						play = fcmd.Play
+						app.QueueUpdateDraw(func() {
+							playText.SetText(makePlayLabel())
+						})
+					}
+				}
 			}
 		}
 	}()
+
+
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
@@ -111,12 +134,10 @@ func setVolumeDown() {
 		volumeText.SetText(makeVolumeBar(volume))
 	}
 }
-func togglePlay() {
-	play = !play
-	cmd <- structures.PlayerCommand{Action: structures.ActionSetPlay, Play: play}
-	if playText != nil {
-		playText.SetText(makePlayLabel())
-	}
+func togglePlay(p *bool) bool {
+	*p = !*p
+	cmd <- structures.PlayerCommand{Action: structures.ActionSetPlay, Play: *p}
+	return *p
 }
 
 
@@ -217,6 +238,8 @@ func makeVolumeBar(level float64) string {
 
 func makePlayLabel() string {
 	var playlabel string = ""
+	// var playbar string = ""
+	
 	letters := []string{"P","L","A","Y","I","N","G"}
 	collors := []string{"lightred","cyan","lightgreen","lightblue","yellow","lightmagenta","lightcyan"}
 	if play {
@@ -227,6 +250,14 @@ func makePlayLabel() string {
 	} else {
 		playlabel = "[red]STOP[-]"
 	}
+
+	// var mock_second int = 2
+	// var bar_length int = 30
+	// if currentTrack != nil {
+	// 	for i := 0; i < bar_length; i++ {
+	// 		if 
+	// 	}
+	// }
 
 	return playlabel
 }

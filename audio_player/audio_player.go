@@ -9,8 +9,10 @@ import (
 )
 
 
+var totalBytesRead int64 = 0
 
-func InitializePlayer(command chan structures.PlayerCommand) {
+
+func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand) {
 	var audiofile *structures.AudioFile
 	var ctx *oto.Context
 	var player *oto.Player
@@ -53,6 +55,7 @@ func InitializePlayer(command chan structures.PlayerCommand) {
 				if playing && ctx != nil && audiofile != nil {
 					n, err := audiofile.Decoder.Read(buf)
 					if n > 0 {
+				        totalBytesRead += int64(n)
 						for i := 0; i < n; i += 2 {
 							sample := int16(buf[i]) | int16(buf[i+1])<<8
 							adjusted := int16(float64(sample) * volume)
@@ -60,17 +63,24 @@ func InitializePlayer(command chan structures.PlayerCommand) {
 							buf[i+1] = byte((adjusted >> 8) & 0xFF)
 						}
 						player.Write(buf[:n])
+						frames := float64(totalBytesRead) / 4.0
+						audiofile.CurrentTime = int(frames / 44100.0) 
 					}
 					if err == io.EOF {
 						playing = false
+						feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
 						continue
 					}
 					if err != nil {
 						fmt.Println("Decoder error:", err)
 						playing = false
+						feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
 					}
 				} else {
 					time.Sleep(10 * time.Millisecond)
+					playing = false
+					feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
+					totalBytesRead = 0
 				}
 			}
 		}
