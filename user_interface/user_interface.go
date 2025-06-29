@@ -6,6 +6,7 @@ import (
 	"playgo/structures"
 	"fmt"
 	"time"
+	"strings"
 )
 
 var cmd chan structures.PlayerCommand
@@ -171,6 +172,7 @@ func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
 		filelist.AddItem(file.Repr(),"",0, func () {
 			cmd <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &f}
 			play = true
+			currentTrack = &f
 		})	
 	}
 
@@ -238,7 +240,7 @@ func makeVolumeBar(level float64) string {
 
 func makePlayLabel() string {
 	var playlabel string = ""
-	// var playbar string = ""
+	var playbar string = ""
 	
 	letters := []string{"P","L","A","Y","I","N","G"}
 	collors := []string{"lightred","cyan","lightgreen","lightblue","yellow","lightmagenta","lightcyan"}
@@ -251,13 +253,24 @@ func makePlayLabel() string {
 		playlabel = "[red]STOP[-]"
 	}
 
-	// var mock_second int = 2
-	// var bar_length int = 30
-	// if currentTrack != nil {
-	// 	for i := 0; i < bar_length; i++ {
-	// 		if 
-	// 	}
-	// }
+	var barlength int = 50	
+	if currentTrack != nil {
+		var current_time int = currentTrack.CurrentTime
+		var total_time int = currentTrack.Duration
+		var current_bar int = int(float64(current_time * barlength)/float64(total_time))
+		playbar += fmt.Sprintf("[cyan]%d[-] ",current_time)
+		for i := 0; i < barlength; i++ {
+			if i < current_bar {
+				playbar += "[cyan]#[-]"
+			} else {
+				playbar += "[gray]0[-]"
+			}
+		}
+		playbar += fmt.Sprintf(" [cyan]%d[-]",total_time)
+	} else {
+		playbar = "[gray]" + strings.Repeat("0", barlength) + "[-]"
+	}
+	playlabel = playlabel + "\n" + playbar
 
 	return playlabel
 }
