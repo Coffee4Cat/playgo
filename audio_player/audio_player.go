@@ -33,6 +33,9 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 					if player != nil {
 						player.Close()
 					}
+					if audiofile != nil {
+						audiofile.CurrentTime = 0
+					}
 					audiofile = cmd.Track
 					audiofile.ResetDecoder()
 					player = ctx.NewPlayer()
@@ -63,11 +66,14 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 							buf[i+1] = byte((adjusted >> 8) & 0xFF)
 						}
 						player.Write(buf[:n])
-						frames := float64(totalBytesRead) / 4.0
-						audiofile.CurrentTime = int(frames / 44100.0) 
+						audiofile.CurrentTime += int(float64(n) * 1000 / (4.0 * 44100.0))
+						if audiofile.CurrentTime > audiofile.Duration {
+							audiofile.CurrentTime = audiofile.Duration
+						}
 					}
 					if err == io.EOF {
 						playing = false
+						audiofile.CurrentTime = 0
 						feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
 						continue
 					}
@@ -79,7 +85,7 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 				} else {
 					time.Sleep(10 * time.Millisecond)
 					playing = false
-					feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
+					// feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
 					totalBytesRead = 0
 				}
 			}

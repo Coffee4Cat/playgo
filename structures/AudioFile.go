@@ -29,7 +29,7 @@ func NewAudioFile(name string, fullpath string) AudioFile {
 	
 	var data_length int64 = decoder.Length()
 	var sample_rate int = decoder.SampleRate()
-	var duration int = int(float64(data_length) / float64(sample_rate * 4))
+	var duration int = int(float64(data_length) * 1000 / float64(sample_rate * 4))
 
 	return AudioFile{FullPath: fullpath, Name: name, Duration: duration,
 					DataLength: data_length, SampleRate: sample_rate, Decoder: decoder}

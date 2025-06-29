@@ -18,11 +18,15 @@ var playstringptr int = 0
 var volume float64 = 0.5
 var currentTrack *structures.AudioFile
 
+var intracmd chan structures.InterfaceCommand
+
+
 
 
 func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand, feedbackcommand chan structures.PlayerCommand) {
 	cmd = command
 	feedbackcmd = feedbackcommand
+	intracmd = make(chan structures.InterfaceCommand)
 
     tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
     tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
@@ -65,7 +69,7 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == ' ' {
-				play = togglePlay(&play)
+				togglePlay(&play)
 			}
 			return nil
 		}
@@ -102,6 +106,13 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 						})
 					}
 				}
+			
+			case icmd := <-intracmd:
+				if icmd.Action == structures.ActionSetPauseLabel {
+					app.QueueUpdateDraw(func() {
+						makePlayLabel()
+					})
+				}
 			}
 		}
 	}()
@@ -118,27 +129,33 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 // utilities
 
 func setVolumeUp() {
-	cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: true}
-	if volume < 0.9 {
-		volume += 0.1
-	}
-	if volumeText != nil {
-		volumeText.SetText(makeVolumeBar(volume))
+	if currentTrack != nil {
+		cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: true}
+		if volume < 0.9 {
+			volume += 0.1
+		}
+		if volumeText != nil {
+			volumeText.SetText(makeVolumeBar(volume))
+		}
 	}
 }
 func setVolumeDown() {
-	cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: false}
-	if volume > 0.0 {
-		volume -= 0.1
-	}
-	if volumeText != nil {
-		volumeText.SetText(makeVolumeBar(volume))
+	if currentTrack != nil {
+		cmd <- structures.PlayerCommand{Action: structures.ActionSetLevel, Level: false}
+		if volume > 0.0 {
+			volume -= 0.1
+		}
+		if volumeText != nil {
+			volumeText.SetText(makeVolumeBar(volume))
+		}
 	}
 }
-func togglePlay(p *bool) bool {
-	*p = !*p
-	cmd <- structures.PlayerCommand{Action: structures.ActionSetPlay, Play: *p}
-	return *p
+func togglePlay(p *bool) {
+	if currentTrack != nil {
+		*p = !*p
+		cmd <- structures.PlayerCommand{Action: structures.ActionSetPlay, Play: *p}
+		intracmd <- structures.InterfaceCommand{Action: structures.ActionSetPauseLabel, Label: *p}
+	}
 }
 
 
@@ -258,7 +275,16 @@ func makePlayLabel() string {
 		var current_time int = currentTrack.CurrentTime
 		var total_time int = currentTrack.Duration
 		var current_bar int = int(float64(current_time * barlength)/float64(total_time))
-		playbar += fmt.Sprintf("[cyan]%d[-] ",current_time)
+
+		minutes_cur := current_time / 60000
+		seconds_cur := (current_time % 60000) / 1000
+		minutes_tot := total_time / 60000
+		seconds_tot := (total_time % 60000) / 1000
+
+
+
+
+		playbar += fmt.Sprintf("[cyan]%02d:%02d[-] ",minutes_cur,seconds_cur)
 		for i := 0; i < barlength; i++ {
 			if i < current_bar {
 				playbar += "[cyan]#[-]"
@@ -266,11 +292,16 @@ func makePlayLabel() string {
 				playbar += "[gray]0[-]"
 			}
 		}
-		playbar += fmt.Sprintf(" [cyan]%d[-]",total_time)
+		playbar += fmt.Sprintf(" [cyan]%02d:%02d[-]",minutes_tot,seconds_tot)
+
+		if minutes_tot == minutes_cur && seconds_cur == seconds_tot {
+			currentTrack = nil
+		}
 	} else {
 		playbar = "[gray]" + strings.Repeat("0", barlength) + "[-]"
 	}
 	playlabel = playlabel + "\n" + playbar
+
 
 	return playlabel
 }
