@@ -1,0 +1,23 @@
+MIT License
+Copyright (c) 2025 Cofee4Cat
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+---
+
+
+This project includes third-party libraries licensed under the Apache License 2.0:
+
+- go-mp3 (https://github.com/hajimehoshi/go-mp3/blob/main/LICENSE)
+- oto (https://github.com/ebitengine/oto/blob/main/LICENSE)
+
+All third-party libraries retain their original licenses and copyright notices.  
+You may obtain a copy of the Apache License 2.0 at: http://www.apache.org/licenses/LICENSE-2.0
