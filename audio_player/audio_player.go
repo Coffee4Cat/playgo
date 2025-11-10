@@ -10,18 +10,21 @@ import (
 )
 
 var playbutton_mutex sync.Mutex
-var playspeed int = 44100
+var default_playspeed int = 48000
+var playmode int = 0
 
-func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand) {
+func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand, speed_multiplier float64) {
 	var audiofile *structures.AudioFile
+	var album *structures.AudioFolder
 	var ctx *oto.Context
 	var player *oto.Player
 	var playing bool
 	var volume float64 = 0.5
+	var playspeed int = int(float64(default_playspeed) * speed_multiplier)
 
 	go func() {
 		buf := make([]byte, 4096)
-		ctx, _ = oto.NewContext(playspeed, 2, 2, 4096) // Well... Cannot think bout better solution right now
+		ctx, _ = oto.NewContext(playspeed, 2, 2, 4096)
 		for {
 			select {
 			case cmd := <-command:
@@ -39,6 +42,7 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 						audiofile.CurrentTime = 0
 					}
 					audiofile = cmd.Track
+					album = cmd.Album
 					audiofile.ResetDecoder()
 					player = ctx.NewPlayer()
 					playing = true
@@ -55,6 +59,9 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 					} else if volume > 1.0 {
 						volume = 1.0
 					}
+
+				case structures.ActionSetMode:
+					playmode = cmd.Mode
 				}
 
 			default:
@@ -74,12 +81,37 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 						}
 					}
 					if err == io.EOF {
-						playbutton_mutex.Lock()
-						playing = false
-						playbutton_mutex.Unlock()
-						audiofile.CurrentTime = 0
-						feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
-						continue
+						if playmode == 0 {
+							playbutton_mutex.Lock()
+							playing = false
+							playbutton_mutex.Unlock()
+							audiofile.CurrentTime = 0
+							feedback <- structures.PlayerCommand{Action: structures.ActionSetPlayFeedback, Play: playing}
+							continue
+						} else if playmode == 1 {
+							if player != nil {
+								player.Close()
+							}
+							if audiofile != nil {
+								audiofile.CurrentTime = 0
+							}
+							audiofile.ResetDecoder()
+							player = ctx.NewPlayer()
+							continue
+						} else if playmode == 2 {
+							if player != nil {
+								player.Close()
+							}
+							if audiofile != nil {
+								audiofile.CurrentTime = 0
+							}
+							audiofile.ResetDecoder()
+							new_track := album.GetNextTrack()
+							audiofile = new_track
+							player = ctx.NewPlayer()
+							feedback <- structures.PlayerCommand{Action: structures.ActionSetTrack, Track: new_track}
+							continue
+						}
 					}
 					if err != nil {
 						fmt.Println("Decoder error:", err)

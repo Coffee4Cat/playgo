@@ -1,44 +1,45 @@
 package user_interface
 
 import (
+	"fmt"
+	"playgo/structures"
+	"strings"
+	"time"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"playgo/structures"
-	"fmt"
-	"time"
-	"strings"
 )
 
 var cmd chan structures.PlayerCommand
 var feedbackcmd chan structures.PlayerCommand
 var volumeText *tview.TextView
 var playText *tview.TextView
+var flagText *tview.TextView
 var play bool = false
-var playstringptr int = 0 
+var playstringptr int = 0
 var volume float64 = 0.5
+var playmode int = 0
 var currentTrack *structures.AudioFile
+var titleList []rune
 
 var intracmd chan structures.InterfaceCommand
-
-
-
 
 func InitializeUI(folders *[]structures.AudioFolder, command chan structures.PlayerCommand, feedbackcommand chan structures.PlayerCommand) {
 	cmd = command
 	feedbackcmd = feedbackcommand
 	intracmd = make(chan structures.InterfaceCommand)
 
-    tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-    tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
-    tview.Styles.MoreContrastBackgroundColor = tcell.ColorDefault
-	
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	tview.Styles.ContrastBackgroundColor = tcell.ColorDefault
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorDefault
+
 	pages := tview.NewPages()
 	fileList := initFileList(pages)
 	folderList := makeFolderList(folders, fileList, pages)
-	
+
 	pages.AddPage("main", folderList, true, true).
 		AddPage("tracks", fileList, true, false)
-		
+
 	volumeText = tview.NewTextView().
 		SetText(makeVolumeBar(volume)).
 		SetTextAlign(tview.AlignCenter).
@@ -49,15 +50,21 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 		SetTextAlign(tview.AlignCenter).
 		SetDynamicColors(true)
 
+	flagText = tview.NewTextView().
+		SetText(makeFlagBar()).
+		SetTextAlign(tview.AlignCenter).
+		SetDynamicColors(true)
+
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(pages, 0, 4, true).
 		AddItem(volumeText, 0, 1, false).
+		AddItem(flagText, 0, 1, true).
 		AddItem(playText, 0, 1, false)
 
 	mainFrame := tview.NewFrame(layout).
 		SetBorders(0, 0, 0, 0, 1, 1).
-		AddText("<<PLAYGO>>", true, tview.AlignCenter,tcell.ColorKhaki)
+		AddText("<<PLAYGO>>", true, tview.AlignCenter, tcell.ColorKhaki)
 
 	mainFrame.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -71,13 +78,15 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 			if event.Rune() == ' ' {
 				togglePlay(&play)
 			}
+			if event.Rune() == 'm' {
+				setPlaymode()
+
+			}
 			return nil
 		}
 
 		return event
-	}) 
-
-
+	})
 
 	app := tview.NewApplication()
 	app.SetRoot(mainFrame, true)
@@ -106,7 +115,14 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 						})
 					}
 				}
-			
+				if fcmd.Action == structures.ActionSetTrack {
+					currentTrack = fcmd.Track
+					titleList = []rune(currentTrack.Name)
+					app.QueueUpdateDraw(func() {
+						makePlayLabel()
+					})
+				}
+
 			case icmd := <-intracmd:
 				if icmd.Action == structures.ActionSetPauseLabel {
 					app.QueueUpdateDraw(func() {
@@ -117,14 +133,10 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 		}
 	}()
 
-
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
 }
-
-
-
 
 // utilities
 
@@ -157,7 +169,11 @@ func togglePlay(p *bool) {
 		intracmd <- structures.InterfaceCommand{Action: structures.ActionSetPauseLabel, Label: *p}
 	}
 }
-
+func setPlaymode() {
+	playmode = (playmode + 1) % 3
+	flagText.SetText(makeFlagBar())
+	cmd <- structures.PlayerCommand{Action: structures.ActionSetMode, Mode: playmode}
+}
 
 func initFileList(pages *tview.Pages) *tview.List {
 	list := tview.NewList()
@@ -165,12 +181,12 @@ func initFileList(pages *tview.Pages) *tview.List {
 		SetTitle("Tracks").
 		SetTitleColor(tcell.ColorKhaki).
 		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-		
+
 	list.SetMainTextColor(tcell.ColorIndianRed).
 		SetSelectedTextColor(tcell.ColorLightGreen).
 		SetSelectedBackgroundColor(tcell.ColorIndianRed)
 
-	list.SetInputCapture(func (event *tcell.EventKey) *tcell.EventKey {
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
 			pages.SwitchToPage("main")
 			return nil
@@ -180,51 +196,49 @@ func initFileList(pages *tview.Pages) *tview.List {
 	return list
 }
 
-
-
-
 func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
 	for _, file := range folder.AudioFiles {
 		f := file
-		filelist.AddItem(file.Repr(),"",0, func () {
-			cmd <- structures.PlayerCommand{ Action: structures.ActionSetTrack, Track: &f}
+		filelist.AddItem(file.Repr(), "", 0, func() {
+			cmd <- structures.PlayerCommand{Action: structures.ActionSetTrack, Track: &f, Album: folder}
 			play = true
 			currentTrack = &f
-		})	
+			titleList = []rune(currentTrack.Name)
+		})
 	}
 
 	filelist.SetBorder(true).
 		SetTitle("Tracks").
 		SetTitleColor(tcell.ColorKhaki).
 		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-		
+
 	filelist.SetMainTextColor(tcell.ColorIndianRed).
 		SetSelectedTextColor(tcell.ColorLightGreen).
 		SetSelectedBackgroundColor(tcell.ColorIndianRed)
 }
 
 func makeFolderList(folders *[]structures.AudioFolder, fileList *tview.List, pages *tview.Pages) *tview.List {
-	selectCallback := func (folder *structures.AudioFolder) {
+	selectCallback := func(folder *structures.AudioFolder) {
 		fileList.Clear()
 		makeFileList(fileList, folder)
 		pages.SwitchToPage("tracks")
 	}
-	
+
 	list := tview.NewList()
 	for _, folder := range *folders {
 		f := folder
-		list.AddItem(folder.Repr(),"",0, func () {selectCallback(&f)})	
+		list.AddItem(folder.Repr(), "", 0, func() { selectCallback(&f) })
 	}
 	list.SetBorder(true).
 		SetTitle("Albums").
 		SetTitleColor(tcell.ColorKhaki).
 		SetBorderStyle(tcell.StyleDefault.Foreground(tcell.ColorLightGreen).Bold(true))
-		
+
 	list.SetMainTextColor(tcell.ColorIndianRed).
 		SetSelectedTextColor(tcell.ColorLightGreen).
 		SetSelectedBackgroundColor(tcell.ColorIndianRed)
 
-	list.SetInputCapture(func (event *tcell.EventKey) *tcell.EventKey {
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
 			pages.SwitchToPage("main")
 			return nil
@@ -235,17 +249,16 @@ func makeFolderList(folders *[]structures.AudioFolder, fileList *tview.List, pag
 	return list
 }
 
-
 func makeVolumeBar(level float64) string {
 	var maxx int = 28
 	var filled int = int(level * float64(maxx))
 	var bar string = "[lightgreen]VOLUME\n[[-] "
-	for i := 0; i < maxx ; i++ {
-		if i <= filled && i <= int(0.33 * float64(maxx)) {
+	for i := 0; i < maxx; i++ {
+		if i <= filled && i <= int(0.33*float64(maxx)) {
 			bar += "[green]#[-]"
-		} else if i <= filled && i <= int(0.66 * float64(maxx)){
+		} else if i <= filled && i <= int(0.66*float64(maxx)) {
 			bar += "[yellow]#[-]"
-		}else if i <= filled && i <= int(1.0 * float64(maxx)){
+		} else if i <= filled && i <= int(1.0*float64(maxx)) {
 			bar += "[red]#[-]"
 		} else {
 			bar += "[gray]0[-]"
@@ -258,33 +271,30 @@ func makeVolumeBar(level float64) string {
 func makePlayLabel() string {
 	var playlabel string = ""
 	var playbar string = ""
-	
-	letters := []string{"P","L","A","Y","I","N","G"}
-	collors := []string{"lightred","cyan","lightgreen","lightblue","yellow","lightmagenta","lightcyan"}
+
+	letters := []string{"P", "L", "A", "Y", "I", "N", "G"}
+	collors := []string{"lightred", "cyan", "lightgreen", "lightblue", "yellow", "lightmagenta", "lightcyan"}
 	if play {
-		for i := 0; i < len(letters) ; i++ {
-			playlabel += fmt.Sprintf("[%s]%s[-]", collors[(i + playstringptr)%len(collors)], letters[i])
+		for i := 0; i < len(letters); i++ {
+			playlabel += fmt.Sprintf("[%s]%s[-]", collors[(i+playstringptr)%len(collors)], letters[i])
 		}
 		playstringptr += 1
 	} else {
 		playlabel = "[red]STOP[-]"
 	}
 
-	var barlength int = 50	
+	var barlength int = 50
 	if currentTrack != nil {
 		var current_time int = currentTrack.CurrentTime
 		var total_time int = currentTrack.Duration
-		var current_bar int = int(float64(current_time * barlength)/float64(total_time))
+		var current_bar int = int(float64(current_time*barlength) / float64(total_time))
 
 		minutes_cur := current_time / 60000
 		seconds_cur := (current_time % 60000) / 1000
 		minutes_tot := total_time / 60000
 		seconds_tot := (total_time % 60000) / 1000
 
-
-
-
-		playbar += fmt.Sprintf("[cyan]%02d:%02d[-] ",minutes_cur,seconds_cur)
+		playbar += fmt.Sprintf("[cyan]%02d:%02d[-] ", minutes_cur, seconds_cur)
 		for i := 0; i < barlength; i++ {
 			if i < current_bar {
 				playbar += "[cyan]#[-]"
@@ -292,7 +302,12 @@ func makePlayLabel() string {
 				playbar += "[gray]0[-]"
 			}
 		}
-		playbar += fmt.Sprintf(" [cyan]%02d:%02d[-]",minutes_tot,seconds_tot)
+		playbar += fmt.Sprintf(" [cyan]%02d:%02d[-]", minutes_tot, seconds_tot)
+		playbar += "\n"
+
+		for i := 0; i < len(titleList); i++ {
+			playbar += fmt.Sprintf("[%s]%s[-]", collors[(i+playstringptr)%len(collors)], string(titleList[i]))
+		}
 
 		if minutes_tot == minutes_cur && seconds_cur == seconds_tot {
 			currentTrack = nil
@@ -302,6 +317,19 @@ func makePlayLabel() string {
 	}
 	playlabel = playlabel + "\n" + playbar
 
-
 	return playlabel
+}
+
+func makeFlagBar() string {
+	switch playmode {
+	case 0:
+		return "[green][None Repeat][-] \t [red][Single Repeat][-] \t [red][Album Repeat][-]"
+	case 1:
+		return "[red][None Repeat][-] \t [green][Single Repeat][-] \t [red][Album Repeat][-]"
+	case 2:
+		return "[red][None Repeat][-] \t [red][Single Repeat][-] \t [green][Album Repeat][-]"
+	default:
+		return "[red][None Repeat][-] \t [red][Single Repeat][-] \t [red][Album Repeat][-]"
+	}
+
 }
