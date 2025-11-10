@@ -11,6 +11,7 @@ import (
 
 var playbutton_mutex sync.Mutex
 var default_playspeed int = 48000
+var playmode int = 0
 
 func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand, speed_multiplier float64) {
 	var audiofile *structures.AudioFile
@@ -22,7 +23,7 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 
 	go func() {
 		buf := make([]byte, 4096)
-		ctx, _ = oto.NewContext(playspeed, 2, 2, 4096) // Well... Cannot think bout better solution right now
+		ctx, _ = oto.NewContext(playspeed, 2, 2, 4096)
 		for {
 			select {
 			case cmd := <-command:
@@ -56,6 +57,9 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 					} else if volume > 1.0 {
 						volume = 1.0
 					}
+
+				case structures.ActionSetMode:
+					playmode = cmd.Mode
 				}
 
 			default:
