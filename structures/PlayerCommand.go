@@ -12,6 +12,7 @@ type PlayerCommand struct {
 	Action string
 
 	Track *AudioFile
+	Album *AudioFolder
 	Level bool
 	Play  bool
 	Mode  int

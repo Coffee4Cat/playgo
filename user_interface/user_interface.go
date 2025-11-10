@@ -115,6 +115,13 @@ func InitializeUI(folders *[]structures.AudioFolder, command chan structures.Pla
 						})
 					}
 				}
+				if fcmd.Action == structures.ActionSetTrack {
+					currentTrack = fcmd.Track
+					titleList = []rune(currentTrack.Name)
+					app.QueueUpdateDraw(func() {
+						makePlayLabel()
+					})
+				}
 
 			case icmd := <-intracmd:
 				if icmd.Action == structures.ActionSetPauseLabel {
@@ -193,7 +200,7 @@ func makeFileList(filelist *tview.List, folder *structures.AudioFolder) {
 	for _, file := range folder.AudioFiles {
 		f := file
 		filelist.AddItem(file.Repr(), "", 0, func() {
-			cmd <- structures.PlayerCommand{Action: structures.ActionSetTrack, Track: &f}
+			cmd <- structures.PlayerCommand{Action: structures.ActionSetTrack, Track: &f, Album: folder}
 			play = true
 			currentTrack = &f
 			titleList = []rune(currentTrack.Name)
