@@ -12,6 +12,7 @@ Designed for use in SSH sessions.
 - [x] Works over SSH
 - [ ] Improved formating
 - [ ] Auto-play
+- [ ] Normal/Slowed play mode
 
 
 ## Third-party libraries
