@@ -97,6 +97,7 @@ func InitializePlayer(command chan structures.PlayerCommand, feedback chan struc
 							}
 							audiofile.ResetDecoder()
 							player = ctx.NewPlayer()
+							feedback <- structures.PlayerCommand{Action: structures.ActionSetTrack, Track: audiofile}
 							continue
 						} else if playmode == 2 {
 							if player != nil {

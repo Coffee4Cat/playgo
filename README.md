@@ -1,18 +1,19 @@
 # PLAYGO
 ![Golang](https://img.shields.io/badge/language-Golang-cyan?style=for-the-badge)  
 ### Short description
-A terminal-based music player that allows you to browse and play your music collection directly from the command line.
+A **terminal-based music player** that allows you to browse and play your music collection directly from the terminal.
 Designed for use in SSH sessions.
 
 
-### Task List
+### Development TODO
 - [x] Plays audio files
 - [x] Play and Stop
-- [x] Volume control
+- [x] Audio volume control
 - [x] Works over SSH
-- [ ] Improved formating
-- [ ] Auto-play
-- [ ] Normal/Slowed play mode
+- [x] Auto-play
+- [x] Normal/Slowed play mode (regulated sampling rate)
+- [ ] Improved style formating
+- [ ] Improved time tracking
 
 
 ## Third-party libraries
