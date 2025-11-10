@@ -10,14 +10,15 @@ import (
 )
 
 var playbutton_mutex sync.Mutex
-var playspeed int = 44100
+var default_playspeed int = 48000
 
-func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand) {
+func InitializePlayer(command chan structures.PlayerCommand, feedback chan structures.PlayerCommand, speed_multiplier float64) {
 	var audiofile *structures.AudioFile
 	var ctx *oto.Context
 	var player *oto.Player
 	var playing bool
 	var volume float64 = 0.5
+	var playspeed int = int(float64(default_playspeed) * speed_multiplier)
 
 	go func() {
 		buf := make([]byte, 4096)
